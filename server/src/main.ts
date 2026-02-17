@@ -21,7 +21,13 @@ async function bootstrap() {
     }),
   );
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      // Swagger UI uses inline scripts/styles; strict CSP from helmet breaks the page.
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
   app.useBodyParser('json', { limit: '10mb' });
   app.useBodyParser('urlencoded', { limit: '10mb', extended: true });
   app.useWebSocketAdapter(new WsAdapter(app));
