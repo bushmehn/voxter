@@ -1,0 +1,256 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ChannelType {
+  TEXT
+  VOICE
+}
+
+enum PresenceStatus {
+  ONLINE
+  IDLE
+  DND
+  OFFLINE
+}
+
+model User {
+  id             String           @id @default(uuid())
+  email          String           @unique
+  passwordHash   String
+  displayName    String
+  avatarUrl      String?
+  presence       PresenceStatus   @default(OFFLINE)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  memberships    GuildMember[]
+  authoredGuilds Guild[]          @relation("GuildOwner")
+  messages       Message[]
+  reactions      Reaction[]
+  refreshTokens  RefreshToken[]
+  createdInvites Invite[]         @relation("InviteCreator")
+  dmMemberships  DMThreadMember[]
+  dmOwnedThreads DMThread[]       @relation("DMOwner")
+  voiceStates    VoiceState[]
+  channelOverwrites ChannelPermissionOverwrite[] @relation("UserOverwrites")
+}
+
+model RefreshToken {
+  id            String    @id @default(uuid())
+  userId        String
+  tokenHash     String
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  rotatedFromId String?
+  createdAt     DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Guild {
+  id         String        @id @default(uuid())
+  name       String
+  ownerId    String
+  iconUrl    String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  owner      User          @relation("GuildOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members    GuildMember[]
+  channels   Channel[]
+  roles      Role[]
+  invites    Invite[]
+  voiceState VoiceState[]
+}
+
+model GuildMember {
+  guildId   String
+  userId    String
+  nickname  String?
+  joinedAt  DateTime @default(now())
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleLinks GuildMemberRole[]
+
+  @@id([guildId, userId])
+  @@index([userId])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  guildId     String
+  name        String
+  color       String?
+  position    Int      @default(0)
+  permissions BigInt
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  memberLinks GuildMemberRole[]
+  overwrites  ChannelPermissionOverwrite[] @relation("RoleOverwrites")
+
+  @@index([guildId, position])
+}
+
+model GuildMemberRole {
+  guildId String
+  userId  String
+  roleId  String
+
+  member GuildMember @relation(fields: [guildId, userId], references: [guildId, userId], onDelete: Cascade)
+  role   Role        @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([guildId, userId, roleId])
+  @@index([roleId])
+}
+
+model Channel {
+  id         String      @id @default(uuid())
+  guildId    String
+  name       String
+  type       ChannelType
+  position   Int         @default(0)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  guild      Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  messages   Message[]
+  invites    Invite[]
+  overwrites ChannelPermissionOverwrite[]
+  voiceState VoiceState[]
+
+  @@index([guildId, position])
+}
+
+model ChannelPermissionOverwrite {
+  id        String  @id @default(uuid())
+  channelId String
+  roleId    String?
+  userId    String?
+  allow     BigInt  @default(0)
+  deny      BigInt  @default(0)
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  role    Role?   @relation("RoleOverwrites", fields: [roleId], references: [id], onDelete: SetNull)
+  user    User?   @relation("UserOverwrites", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([channelId])
+  @@index([roleId])
+  @@index([userId])
+}
+
+model Invite {
+  id         String    @id @default(uuid())
+  code       String    @unique
+  guildId    String
+  channelId  String?
+  creatorId  String
+  expiresAt  DateTime?
+  maxUses    Int?
+  uses       Int       @default(0)
+  revoked    Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  guild   Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  channel Channel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  creator User     @relation("InviteCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([guildId])
+  @@index([code])
+}
+
+model DMThread {
+  id        String           @id @default(uuid())
+  name      String?
+  isGroup   Boolean          @default(false)
+  ownerId   String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  owner     User?            @relation("DMOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  members   DMThreadMember[]
+  messages  Message[]
+}
+
+model DMThreadMember {
+  threadId String
+  userId   String
+  joinedAt DateTime @default(now())
+  thread   DMThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([threadId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id            String      @id @default(uuid())
+  channelId     String?
+  dmThreadId    String?
+  authorId      String
+  content       String
+  editedAt      DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  channel       Channel?    @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  dmThread      DMThread?   @relation(fields: [dmThreadId], references: [id], onDelete: Cascade)
+  author        User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  attachments   Attachment[]
+  reactions     Reaction[]
+  searchVector  Unsupported("tsvector")?
+
+  @@index([channelId, createdAt(sort: Desc)])
+  @@index([dmThreadId, createdAt(sort: Desc)])
+  @@index([authorId])
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  messageId String
+  fileName  String
+  mimeType  String
+  size      Int
+  url       String
+  createdAt DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+}
+
+model Reaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+model VoiceState {
+  id        String   @id @default(uuid())
+  guildId   String
+  channelId String
+  userId    String
+  muted     Boolean  @default(false)
+  deafened  Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guild   Guild   @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, userId])
+  @@index([channelId])
+}

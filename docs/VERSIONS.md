@@ -1,0 +1,201 @@
+# Voxter Versions and Sources
+
+Updated: 2026-02-17
+
+## Local Source Files (where versions were read)
+- `client/CMakeLists.txt`
+- `client/third_party/livekit-sdk-0.3.1/livekit-sdk-windows-x64-0.3.1/lib/cmake/LiveKit/LiveKitConfigVersion.cmake`
+- `server/package.json`
+- `docker/docker-compose.yml`
+- `server/Dockerfile`
+- `.github/workflows/ci.yml`
+- `docs/API.md`
+
+## Core Stack
+- Voxter Server: `0.1.0`
+  - Source: `server/package.json`
+- Qt: minimum `6.10` (project), CI uses `6.10.2`
+  - Source: `client/CMakeLists.txt`, `.github/workflows/ci.yml`
+  - Link: https://doc.qt.io/qt-6/
+- CMake: minimum `3.21`
+  - Source: `client/CMakeLists.txt`
+  - Link: https://cmake.org/cmake/help/latest/
+- C++: `C++17`
+  - Source: `client/CMakeLists.txt`
+- WS envelope version: `1.0`
+  - Source: `docs/API.md`
+
+## Docker Images
+- PostgreSQL: `postgres:18.2-alpine`
+  - Source: `docker/docker-compose.yml`
+  - Link: https://hub.docker.com/_/postgres
+- Redis: `redis:8.4.1-alpine`
+  - Source: `docker/docker-compose.yml`
+  - Link: https://hub.docker.com/_/redis
+- MinIO: `minio/minio:RELEASE.2025-09-07T16-13-09Z`
+  - Source: `docker/docker-compose.yml`
+  - Link: https://hub.docker.com/r/minio/minio
+- LiveKit server: `livekit/livekit-server:v1.9.11`
+  - Source: `docker/docker-compose.yml`
+  - Link: https://hub.docker.com/r/livekit/livekit-server
+- API image base: `node:22-bookworm-slim`
+  - Source: `server/Dockerfile`
+  - Link: https://hub.docker.com/_/node
+
+## Voice
+- livekit-server-sdk (backend): `^2.15.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/livekit-server-sdk
+- LiveKit C++ SDK (client, bundled): `0.3.1`
+  - Source: `client/third_party/livekit-sdk-0.3.1/livekit-sdk-windows-x64-0.3.1`
+  - Link: https://github.com/livekit/client-sdk-cpp
+
+## Backend Dependencies
+- @nestjs/common: `^11.1.13`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/common
+- @nestjs/config: `^4.0.3`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/config
+- @nestjs/core: `^11.1.13`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/core
+- @nestjs/jwt: `^11.0.2`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/jwt
+- @nestjs/passport: `^11.0.5`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/passport
+- @nestjs/platform-express: `^11.1.13`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/platform-express
+- @nestjs/platform-ws: `^11.1.13`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/platform-ws
+- @nestjs/swagger: `^11.2.6`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/swagger
+- @nestjs/throttler: `^6.5.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/throttler
+- @nestjs/websockets: `^11.1.13`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/websockets
+- @prisma/adapter-pg: `^7.4.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@prisma/adapter-pg
+- @prisma/client: `^7.4.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@prisma/client
+- argon2: `^0.44.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/argon2
+- class-transformer: `^0.5.1`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/class-transformer
+- class-validator: `^0.14.3`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/class-validator
+- helmet: `^8.1.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/helmet
+- ioredis: `^5.9.3`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/ioredis
+- livekit-server-sdk: `^2.15.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/livekit-server-sdk
+- minio: `^8.0.6`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/minio
+- multer: `^2.0.2`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/multer
+- passport: `^0.7.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/passport
+- passport-jwt: `^4.0.1`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/passport-jwt
+- prisma: `^7.4.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/prisma
+- reflect-metadata: `^0.2.2`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/reflect-metadata
+- rxjs: `^7.8.2`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/rxjs
+- sanitize-html: `^2.17.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/sanitize-html
+- uuid: `^13.0.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/uuid
+- ws: `^8.19.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/ws
+
+## Backend Dev Dependencies
+- @nestjs/cli: `^11.0.16`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/cli
+- @nestjs/schematics: `^11.0.9`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/schematics
+- @nestjs/testing: `^11.1.13`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@nestjs/testing
+- @types/express: `^5.0.6`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@types/express
+- @types/jest: `^30.0.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@types/jest
+- @types/multer: `^2.0.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@types/multer
+- @types/node: `^25.2.3`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@types/node
+- @types/passport-jwt: `^4.0.1`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@types/passport-jwt
+- @types/sanitize-html: `^2.16.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@types/sanitize-html
+- @types/supertest: `^6.0.3`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@types/supertest
+- @types/ws: `^8.18.1`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/@types/ws
+- eslint: `^10.0.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/eslint
+- jest: `^30.2.0`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/jest
+- supertest: `^7.2.2`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/supertest
+- ts-jest: `^29.4.6`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/ts-jest
+- ts-node: `^10.9.2`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/ts-node
+- typescript: `^5.9.3`
+  - Source: `server/package.json`
+  - Link: https://www.npmjs.com/package/typescript
+
+## CI Actions
+- actions/checkout@v4
+  - Source: `.github/workflows/ci.yml`
+  - Link: https://github.com/actions/checkout
+- actions/setup-node@v4 (Node 22)
+  - Source: `.github/workflows/ci.yml`
+  - Link: https://github.com/actions/setup-node
+- jurplel/install-qt-action@v4
+  - Source: `.github/workflows/ci.yml`
+  - Link: https://github.com/jurplel/install-qt-action
