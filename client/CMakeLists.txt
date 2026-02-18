@@ -82,6 +82,10 @@ qt_add_executable(voxter_client
     ${CLIENT_HEADERS}
 )
 
+if (WIN32)
+    set_target_properties(voxter_client PROPERTIES WIN32_EXECUTABLE TRUE)
+endif()
+
 qt_add_qml_module(voxter_client
     URI Voxter
     VERSION 1.0
