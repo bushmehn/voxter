@@ -1,6 +1,8 @@
 #include "Application.h"
 
 #include <QCoreApplication>
+#include <QDir>
+#include <QSettings>
 
 #include "services/ApiClient.h"
 #include "services/GatewayClient.h"
@@ -11,6 +13,43 @@
 #include "viewmodels/GuildViewModel.h"
 #include "viewmodels/ProfileViewModel.h"
 #include "viewmodels/VoiceViewModel.h"
+
+namespace {
+QString normalizeApiUrl(QString value) {
+    value = value.trimmed();
+    if (value.isEmpty()) {
+        return {};
+    }
+
+    if (!value.startsWith(QStringLiteral("http://")) &&
+        !value.startsWith(QStringLiteral("https://"))) {
+        value.prepend(QStringLiteral("http://"));
+    }
+
+    while (value.endsWith('/')) {
+        value.chop(1);
+    }
+    return value;
+}
+
+QString resolveApiUrl() {
+    const QString envUrl = normalizeApiUrl(qEnvironmentVariable("VOXTER_API_URL"));
+    if (!envUrl.isEmpty()) {
+        return envUrl;
+    }
+
+    const QString iniPath =
+        QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("voxter_client.ini"));
+    QSettings ini(iniPath, QSettings::IniFormat);
+    const QString iniUrl =
+        normalizeApiUrl(ini.value(QStringLiteral("network/api_url")).toString());
+    if (!iniUrl.isEmpty()) {
+        return iniUrl;
+    }
+
+    return QStringLiteral("http://81.90.25.34:4000");
+}
+}
 
 Application::Application(QObject *parent)
     : QObject(parent)
@@ -24,7 +63,7 @@ Application::Application(QObject *parent)
     , m_voice(new VoiceViewModel(this))
     , m_profile(new ProfileViewModel(this)) {
 
-    const QString apiUrl = qEnvironmentVariable("VOXTER_API_URL", QStringLiteral("http://localhost:4000"));
+    const QString apiUrl = resolveApiUrl();
     m_api->setBaseUrl(apiUrl);
     m_gateway->setApiBaseUrl(apiUrl);
 

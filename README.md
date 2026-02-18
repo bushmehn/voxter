@@ -59,6 +59,13 @@ If backend runs elsewhere:
 set VOXTER_API_URL=http://<host>:4000
 ```
 
+Or place `voxter_client.ini` next to `voxter_client.exe`:
+
+```ini
+[network]
+api_url=http://<host>:4000
+```
+
 ### 4) Tests
 
 Backend:
