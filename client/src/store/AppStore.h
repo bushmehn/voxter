@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QObject>
+#include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -45,6 +46,7 @@ public:
     Q_INVOKABLE void setVoiceParticipants(const QVariantList &participants);
     Q_INVOKABLE void setVoiceParticipantsForChannel(const QString &channelId, const QVariantList &participants);
     Q_INVOKABLE QVariantList voiceParticipantsForChannel(const QString &channelId) const;
+    Q_INVOKABLE void setVoiceSpeakingUsers(const QString &channelId, const QStringList &speakingUserIds);
     Q_INVOKABLE void updateVoiceParticipantState(const QString &channelId,
                                                  const QString &userId,
                                                  const QVariantMap &patch,

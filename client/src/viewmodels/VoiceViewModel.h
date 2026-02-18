@@ -22,6 +22,7 @@ class VoiceViewModel final : public QObject {
     Q_PROPERTY(QVariantList outputDevices READ outputDevices NOTIFY outputDevicesChanged)
     Q_PROPERTY(QString selectedInputDeviceId READ selectedInputDeviceId NOTIFY selectedInputDeviceIdChanged)
     Q_PROPERTY(QString selectedOutputDeviceId READ selectedOutputDeviceId NOTIFY selectedOutputDeviceIdChanged)
+    Q_PROPERTY(int microphoneVolume READ microphoneVolume NOTIFY microphoneVolumeChanged)
     Q_PROPERTY(QString activationMode READ activationMode NOTIFY activationModeChanged)
     Q_PROPERTY(QString pttHotkey READ pttHotkey NOTIFY pttHotkeyChanged)
     Q_PROPERTY(bool pttHotkeyEnabled READ pttHotkeyEnabled NOTIFY pttHotkeyEnabledChanged)
@@ -44,6 +45,7 @@ public:
     QVariantList outputDevices() const;
     QString selectedInputDeviceId() const;
     QString selectedOutputDeviceId() const;
+    int microphoneVolume() const;
     QString activationMode() const;
     QString pttHotkey() const;
     bool pttHotkeyEnabled() const;
@@ -59,6 +61,7 @@ public:
     Q_INVOKABLE void requestAudioDevices(bool requestPermission = false);
     Q_INVOKABLE void setSelectedInputDeviceId(const QString &deviceId);
     Q_INVOKABLE void setSelectedOutputDeviceId(const QString &deviceId);
+    Q_INVOKABLE void setMicrophoneVolume(int volume);
     Q_INVOKABLE void setActivationMode(const QString &mode);
     Q_INVOKABLE void setPttHotkey(const QString &hotkey);
     Q_INVOKABLE void setPttHotkeyEnabled(bool enabled);
@@ -76,6 +79,7 @@ signals:
     void outputDevicesChanged();
     void selectedInputDeviceIdChanged();
     void selectedOutputDeviceIdChanged();
+    void microphoneVolumeChanged();
     void activationModeChanged();
     void pttHotkeyChanged();
     void pttHotkeyEnabledChanged();
@@ -118,6 +122,7 @@ private:
     QVariantList m_outputDevices;
     QString m_selectedInputDeviceId;
     QString m_selectedOutputDeviceId;
+    int m_microphoneVolume{100};
     QString m_activationMode{"VOICE_ACTIVITY"};
     QString m_pttHotkey{"V"};
     bool m_pttHotkeyEnabled{true};

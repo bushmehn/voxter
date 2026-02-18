@@ -337,17 +337,32 @@ export class GatewayService implements OnGatewayConnection, OnGatewayDisconnect 
       return;
     }
 
-    const voiceState = await this.prisma.voiceState.findUnique({
-      where: {
-        guildId_userId: {
-          guildId: body.guildId,
-          userId: session.userId,
+    const key = this.makeVoiceSessionKey(body.guildId, session.userId);
+    let voiceState = this.voiceSessionsByGuildUser.get(key);
+    if (!voiceState) {
+      // Fallback for rare cache misses.
+      const dbVoiceState = await this.prisma.voiceState.findUnique({
+        where: {
+          guildId_userId: {
+            guildId: body.guildId,
+            userId: session.userId,
+          },
         },
-      },
-      select: {
-        channelId: true,
-      },
-    });
+        select: {
+          channelId: true,
+          muted: true,
+          deafened: true,
+        },
+      });
+      if (dbVoiceState) {
+        voiceState = {
+          channelId: dbVoiceState.channelId,
+          muted: dbVoiceState.muted,
+          deafened: dbVoiceState.deafened,
+        };
+        this.voiceSessionsByGuildUser.set(key, voiceState);
+      }
+    }
 
     if (!voiceState || voiceState.channelId !== body.channelId) {
       return;
@@ -363,25 +378,28 @@ export class GatewayService implements OnGatewayConnection, OnGatewayDisconnect 
   }
 
   emitToChannel(channelId: string, event: string, data: unknown) {
+    const encoded = this.encodeEnvelope(event, data);
     this.forEachSession((socket, session) => {
       if (session.channelSubscriptions.has(channelId)) {
-        this.send(socket, event, data);
+        this.sendSerialized(socket, encoded);
       }
     });
   }
 
   emitToGuild(guildId: string, event: string, data: unknown) {
+    const encoded = this.encodeEnvelope(event, data);
     this.forEachSession((socket, session) => {
       if (session.guildSubscriptions.has(guildId)) {
-        this.send(socket, event, data);
+        this.sendSerialized(socket, encoded);
       }
     });
   }
 
   emitToDmThread(threadId: string, event: string, data: unknown) {
+    const encoded = this.encodeEnvelope(event, data);
     this.forEachSession((socket, session) => {
       if (session.dmSubscriptions.has(threadId)) {
-        this.send(socket, event, data);
+        this.sendSerialized(socket, encoded);
       }
     });
   }
@@ -392,17 +410,19 @@ export class GatewayService implements OnGatewayConnection, OnGatewayDisconnect 
       return 0;
     }
 
+    const encoded = this.encodeEnvelope(event, data);
     let delivered = 0;
     for (const socket of sockets) {
-      this.send(socket, event, data);
+      this.sendSerialized(socket, encoded);
       delivered += 1;
     }
     return delivered;
   }
 
   broadcast(event: string, data: unknown) {
+    const encoded = this.encodeEnvelope(event, data);
     this.forEachSession((socket) => {
-      this.send(socket, event, data);
+      this.sendSerialized(socket, encoded);
     });
   }
 
@@ -418,17 +438,23 @@ export class GatewayService implements OnGatewayConnection, OnGatewayDisconnect 
   }
 
   private send(client: WebSocket, event: string, data: unknown) {
+    this.sendSerialized(client, this.encodeEnvelope(event, data));
+  }
+
+  private sendSerialized(client: WebSocket, payload: string) {
     if (client.readyState !== WebSocket.OPEN) {
       return;
     }
+    client.send(payload);
+  }
 
+  private encodeEnvelope(event: string, data: unknown): string {
     const envelope: GatewayEnvelope = {
       v: '1.0',
       t: event,
       d: data,
     };
-
-    client.send(JSON.stringify(envelope));
+    return JSON.stringify(envelope);
   }
 
   private extractToken(request: IncomingMessage): string | null {

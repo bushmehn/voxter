@@ -37,6 +37,13 @@ GatewayClient::GatewayClient(QObject *parent)
             emit connectedChanged();
         }
 
+        if (m_openAfterDisconnect && !m_manualDisconnect && !m_accessToken.isEmpty()) {
+            m_openAfterDisconnect = false;
+            setConnectionState(QStringLiteral("connecting"));
+            m_socket.open(QUrl(makeGatewayUrl(m_accessToken)));
+            return;
+        }
+
         if (m_manualDisconnect || m_accessToken.isEmpty()) {
             setConnectionState(QStringLiteral("disconnected"));
             return;
@@ -95,17 +102,24 @@ void GatewayClient::connectToGateway(const QString &accessToken) {
 
     m_accessToken = accessToken;
     m_manualDisconnect = false;
+    m_openAfterDisconnect = false;
     m_reconnectTimer.stop();
     setReconnectAttempt(0);
     setConnectionState(QStringLiteral("connecting"));
-    if (m_socket.state() != QAbstractSocket::UnconnectedState) {
-        m_socket.abort();
+
+    const auto state = m_socket.state();
+    if (state == QAbstractSocket::UnconnectedState) {
+        m_socket.open(QUrl(makeGatewayUrl(m_accessToken)));
+        return;
     }
-    m_socket.open(QUrl(makeGatewayUrl(m_accessToken)));
+
+    m_openAfterDisconnect = true;
+    m_socket.close();
 }
 
 void GatewayClient::disconnectFromGateway() {
     m_manualDisconnect = true;
+    m_openAfterDisconnect = false;
     m_reconnectTimer.stop();
     m_accessToken.clear();
     m_desiredChannelIds.clear();

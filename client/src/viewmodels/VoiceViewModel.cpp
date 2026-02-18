@@ -17,6 +17,7 @@ namespace {
 constexpr const char *kVoiceSettingsGroup = "voice";
 constexpr const char *kInputDeviceIdKey = "inputDeviceId";
 constexpr const char *kOutputDeviceIdKey = "outputDeviceId";
+constexpr const char *kMicrophoneVolumeKey = "microphoneVolume";
 constexpr const char *kActivationModeKey = "activationMode";
 constexpr const char *kPttHotkeyKey = "pttHotkey";
 constexpr const char *kPttHotkeyEnabledKey = "pttHotkeyEnabled";
@@ -61,6 +62,16 @@ bool isTooManyRequestsError(const QString &error) {
            lowered.contains(QStringLiteral("status code 429")) ||
            lowered == QStringLiteral("429");
 }
+
+int normalizeMicrophoneVolume(int volume) {
+    if (volume < 0) {
+        return 0;
+    }
+    if (volume > 200) {
+        return 200;
+    }
+    return volume;
+}
 }
 
 VoiceViewModel::VoiceViewModel(QObject *parent)
@@ -86,24 +97,7 @@ VoiceViewModel::VoiceViewModel(QObject *parent)
             return;
         }
 
-        const QVariantList participants = m_store->voiceParticipantsForChannel(m_activeChannelId);
-        const QSet<QString> speakingUsers(userIds.constBegin(), userIds.constEnd());
-
-        for (const QVariant &entry : participants) {
-            const QVariantMap participant = entry.toMap();
-            const QVariantMap participantUser = participant.value(QStringLiteral("user")).toMap();
-            const QString userId = participantUser.value(QStringLiteral("id")).toString().isEmpty()
-                                       ? participant.value(QStringLiteral("userId")).toString()
-                                       : participantUser.value(QStringLiteral("id")).toString();
-            if (userId.isEmpty()) {
-                continue;
-            }
-            const bool speaking = speakingUsers.contains(userId);
-            m_store->updateVoiceParticipantState(
-                m_activeChannelId,
-                userId,
-                {{QStringLiteral("speaking"), speaking}});
-        }
+        m_store->setVoiceSpeakingUsers(m_activeChannelId, userIds);
         m_store->setVoiceParticipants(m_store->voiceParticipantsForChannel(m_activeChannelId));
     });
     recomputeAudioDeviceLists();
@@ -152,6 +146,10 @@ QString VoiceViewModel::selectedInputDeviceId() const {
 
 QString VoiceViewModel::selectedOutputDeviceId() const {
     return m_selectedOutputDeviceId;
+}
+
+int VoiceViewModel::microphoneVolume() const {
+    return m_microphoneVolume;
 }
 
 QString VoiceViewModel::activationMode() const {
@@ -392,6 +390,18 @@ void VoiceViewModel::setSelectedOutputDeviceId(const QString &deviceId) {
 
     m_selectedOutputDeviceId = deviceId;
     emit selectedOutputDeviceIdChanged();
+    persistAudioSettings();
+    dispatchAudioSettingsToBridge();
+}
+
+void VoiceViewModel::setMicrophoneVolume(int volume) {
+    const int normalizedVolume = normalizeMicrophoneVolume(volume);
+    if (m_microphoneVolume == normalizedVolume) {
+        return;
+    }
+
+    m_microphoneVolume = normalizedVolume;
+    emit microphoneVolumeChanged();
     persistAudioSettings();
     dispatchAudioSettingsToBridge();
 }
@@ -700,6 +710,7 @@ void VoiceViewModel::dispatchAudioSettingsToBridge() {
 
     m_nativeEngine->setSelectedInputDeviceId(m_selectedInputDeviceId);
     m_nativeEngine->setSelectedOutputDeviceId(m_selectedOutputDeviceId);
+    m_nativeEngine->setMicrophoneGain(static_cast<qreal>(m_microphoneVolume) / 100.0);
     m_nativeEngine->setMuted(m_muted);
     m_nativeEngine->setDeafened(m_deafened);
 
@@ -715,6 +726,8 @@ void VoiceViewModel::restoreAudioSettings() {
     settings.beginGroup(QString::fromLatin1(kVoiceSettingsGroup));
     m_selectedInputDeviceId = settings.value(QString::fromLatin1(kInputDeviceIdKey)).toString();
     m_selectedOutputDeviceId = settings.value(QString::fromLatin1(kOutputDeviceIdKey)).toString();
+    m_microphoneVolume = normalizeMicrophoneVolume(
+        settings.value(QString::fromLatin1(kMicrophoneVolumeKey), 100).toInt());
     m_activationMode = normalizeActivationMode(
         settings.value(QString::fromLatin1(kActivationModeKey), QStringLiteral("VOICE_ACTIVITY")).toString());
     m_pttHotkey = normalizePttHotkey(
@@ -728,6 +741,7 @@ void VoiceViewModel::persistAudioSettings() const {
     settings.beginGroup(QString::fromLatin1(kVoiceSettingsGroup));
     settings.setValue(QString::fromLatin1(kInputDeviceIdKey), m_selectedInputDeviceId);
     settings.setValue(QString::fromLatin1(kOutputDeviceIdKey), m_selectedOutputDeviceId);
+    settings.setValue(QString::fromLatin1(kMicrophoneVolumeKey), m_microphoneVolume);
     settings.setValue(QString::fromLatin1(kActivationModeKey), m_activationMode);
     settings.setValue(QString::fromLatin1(kPttHotkeyKey), m_pttHotkey);
     settings.setValue(QString::fromLatin1(kPttHotkeyEnabledKey), m_pttHotkeyEnabled);

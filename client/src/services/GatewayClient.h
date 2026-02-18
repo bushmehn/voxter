@@ -51,4 +51,5 @@ private:
     bool m_manualDisconnect{false};
     QString m_connectionState{"disconnected"};
     int m_reconnectAttempt{0};
+    bool m_openAfterDisconnect{false};
 };

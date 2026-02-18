@@ -258,6 +258,7 @@ Item {
             outputDeviceCombo.currentIndex = app.voice.outputDevices.length > 0
                                             ? root.findDeviceIndex(app.voice.outputDevices, app.voice.selectedOutputDeviceId)
                                             : -1
+            micVolumeSlider.value = app.voice.microphoneVolume
             activationModeCombo.currentIndex = app.voice.activationMode === "PUSH_TO_TALK" ? 1 : 0
         }
 
@@ -342,6 +343,35 @@ Item {
                             textRole: "label"
                             valueRole: "id"
                             onActivated: app.voice.setSelectedInputDeviceId(currentValue)
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            text: "Microphone Volume"
+                            color: "#dbeeff"
+                            font.bold: true
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 10
+
+                            Slider {
+                                id: micVolumeSlider
+                                Layout.fillWidth: true
+                                from: 0
+                                to: 200
+                                stepSize: 1
+                                value: 100
+                                onValueChanged: app.voice.setMicrophoneVolume(Math.round(value))
+                            }
+
+                            Label {
+                                Layout.preferredWidth: 56
+                                horizontalAlignment: Text.AlignRight
+                                text: Math.round(micVolumeSlider.value) + "%"
+                                color: "#c8ddf3"
+                            }
                         }
 
                         Label {
@@ -474,6 +504,7 @@ Item {
             function onOutputDevicesChanged() { settingsDialog.syncFromState() }
             function onSelectedInputDeviceIdChanged() { settingsDialog.syncFromState() }
             function onSelectedOutputDeviceIdChanged() { settingsDialog.syncFromState() }
+            function onMicrophoneVolumeChanged() { settingsDialog.syncFromState() }
             function onActivationModeChanged() { settingsDialog.syncFromState() }
         }
     }

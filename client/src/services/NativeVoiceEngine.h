@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QtGlobal>
 #include <QVariantList>
 
 #include <atomic>
@@ -51,6 +52,7 @@ public:
                           const QString &token,
                           const QString &roomName,
                           const QString &identity);
+    void setMicrophoneGain(qreal gain);
     void setMuted(bool muted);
     void setDeafened(bool deafened);
     void setTransmitEnabled(bool enabled);
@@ -138,6 +140,7 @@ private:
     QString m_channelId;
     QString m_sfuUrl;
     QString m_sfuToken;
+    qreal m_microphoneGain{1.0};
 
     bool m_muted{false};
     bool m_deafened{false};

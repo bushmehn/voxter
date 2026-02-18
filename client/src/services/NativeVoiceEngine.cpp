@@ -132,6 +132,16 @@ QAudioDevice resolveOutputDevice(const QString &selectedId) {
     }
     return QMediaDevices::defaultAudioOutput();
 }
+
+qreal normalizeMicrophoneGain(qreal gain) {
+    if (gain < 0.0) {
+        return 0.0;
+    }
+    if (gain > 3.0) {
+        return 3.0;
+    }
+    return gain;
+}
 }
 
 class NativeVoiceEngine::RoomDelegateImpl final : public livekit::RoomDelegate {
@@ -359,6 +369,14 @@ void NativeVoiceEngine::setSfuConnection(const QString &url,
     m_sfuToken = token;
 }
 
+void NativeVoiceEngine::setMicrophoneGain(qreal gain) {
+    const qreal normalizedGain = normalizeMicrophoneGain(gain);
+    if (qFuzzyCompare(m_microphoneGain, normalizedGain)) {
+        return;
+    }
+    m_microphoneGain = normalizedGain;
+}
+
 void NativeVoiceEngine::setMuted(bool muted) {
     if (m_muted == muted) {
         return;
@@ -531,16 +549,39 @@ void NativeVoiceEngine::onInputReadyRead() {
         return;
     }
 
-    while (m_inputBuffer.size() >= kCaptureFrameBytes) {
-        const QByteArray frameBytes = m_inputBuffer.left(kCaptureFrameBytes);
-        m_inputBuffer.remove(0, kCaptureFrameBytes);
+    const int frameCount = m_inputBuffer.size() / kCaptureFrameBytes;
+    if (frameCount <= 0) {
+        return;
+    }
 
-        if (!m_transmittingNow.load()) {
-            continue;
+    const bool transmitNow = m_transmittingNow.load();
+    const qreal gain = m_microphoneGain;
+
+    if (!transmitNow) {
+        m_inputBuffer.remove(0, frameCount * kCaptureFrameBytes);
+        return;
+    }
+
+    const char *raw = m_inputBuffer.constData();
+    const size_t pcmSampleCount = static_cast<size_t>(kCaptureSamplesPerChannel * kCaptureChannels);
+
+    for (int frameIndex = 0; frameIndex < frameCount; ++frameIndex) {
+        const char *framePtr = raw + (frameIndex * kCaptureFrameBytes);
+        std::vector<int16_t> pcm(pcmSampleCount);
+        std::memcpy(pcm.data(), framePtr, static_cast<size_t>(kCaptureFrameBytes));
+
+        if (!qFuzzyCompare(gain, 1.0)) {
+            for (int16_t &sample : pcm) {
+                const qreal scaled = static_cast<qreal>(sample) * gain;
+                if (scaled > 32767.0) {
+                    sample = 32767;
+                } else if (scaled < -32768.0) {
+                    sample = -32768;
+                } else {
+                    sample = static_cast<int16_t>(scaled);
+                }
+            }
         }
-
-        std::vector<int16_t> pcm(static_cast<size_t>(kCaptureSamplesPerChannel * kCaptureChannels));
-        std::memcpy(pcm.data(), frameBytes.constData(), static_cast<size_t>(kCaptureFrameBytes));
 
         try {
             livekit::AudioFrame frame(std::move(pcm), kCaptureSampleRate, kCaptureChannels, kCaptureSamplesPerChannel);
@@ -558,6 +599,8 @@ void NativeVoiceEngine::onInputReadyRead() {
             return;
         }
     }
+
+    m_inputBuffer.remove(0, frameCount * kCaptureFrameBytes);
 }
 
 void NativeVoiceEngine::connectRoomAsync() {

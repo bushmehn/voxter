@@ -1,5 +1,7 @@
 #include "AppStore.h"
 
+#include <QSet>
+
 AppStore::AppStore(QObject *parent)
     : QObject(parent) {}
 
@@ -93,6 +95,9 @@ void AppStore::setDmThreads(const QVariantList &threads) {
 }
 
 void AppStore::setVoiceParticipants(const QVariantList &participants) {
+    if (m_voiceParticipants == participants) {
+        return;
+    }
     m_voiceParticipants = participants;
     emit voiceParticipantsChanged();
 }
@@ -102,12 +107,57 @@ void AppStore::setVoiceParticipantsForChannel(const QString &channelId, const QV
         return;
     }
 
+    if (m_voiceParticipantsByChannel.value(channelId).toList() == participants) {
+        return;
+    }
+
     m_voiceParticipantsByChannel.insert(channelId, participants);
     emit voiceParticipantsByChannelChanged();
 }
 
 QVariantList AppStore::voiceParticipantsForChannel(const QString &channelId) const {
     return m_voiceParticipantsByChannel.value(channelId).toList();
+}
+
+void AppStore::setVoiceSpeakingUsers(const QString &channelId, const QStringList &speakingUserIds) {
+    if (channelId.isEmpty()) {
+        return;
+    }
+
+    QVariantList participants = m_voiceParticipantsByChannel.value(channelId).toList();
+    if (participants.isEmpty()) {
+        return;
+    }
+
+    const QSet<QString> speakingSet(speakingUserIds.constBegin(), speakingUserIds.constEnd());
+    bool changed = false;
+
+    for (int i = 0; i < participants.size(); ++i) {
+        QVariantMap participant = participants.at(i).toMap();
+        const QVariantMap participantUser = participant.value("user").toMap();
+        const QString participantUserId = participantUser.value("id").toString().isEmpty()
+                                              ? participant.value("userId").toString()
+                                              : participantUser.value("id").toString();
+        if (participantUserId.isEmpty()) {
+            continue;
+        }
+
+        const bool shouldSpeak = speakingSet.contains(participantUserId);
+        if (participant.value("speaking", false).toBool() == shouldSpeak) {
+            continue;
+        }
+
+        participant.insert("speaking", shouldSpeak);
+        participants[i] = participant;
+        changed = true;
+    }
+
+    if (!changed) {
+        return;
+    }
+
+    m_voiceParticipantsByChannel.insert(channelId, participants);
+    emit voiceParticipantsByChannelChanged();
 }
 
 void AppStore::updateVoiceParticipantState(const QString &channelId,
@@ -138,8 +188,12 @@ void AppStore::updateVoiceParticipantState(const QString &channelId,
             break;
         }
 
+        const QVariantMap original = participant;
         for (auto it = patch.constBegin(); it != patch.constEnd(); ++it) {
             participant.insert(it.key(), it.value());
+        }
+        if (participant == original) {
+            break;
         }
         participants[i] = participant;
         changed = true;
